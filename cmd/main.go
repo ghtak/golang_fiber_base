@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"github.com/gofiber/fiber/v3"
 	"github.com/golang_fiber_base/internal/app"
 	"github.com/golang_fiber_base/internal/log"
@@ -59,6 +60,11 @@ func NewHttpServer(lc fx.Lifecycle, mux *http.ServeMux, log *zap.Logger) *http.S
 	return srv
 }
 
+type Route interface {
+	http.Handler
+	Pattern() string
+}
+
 type EchoHandler struct {
 	log *zap.Logger
 }
@@ -73,18 +79,41 @@ func (h *EchoHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-type Route interface {
-	http.Handler
-	Pattern() string
-}
-
 func (*EchoHandler) Pattern() string {
 	return "/echo"
 }
 
-func NewServeMux(route Route) *http.ServeMux {
+type HelloHandler struct {
+	log *zap.Logger
+}
+
+func NewHelloHandler(log *zap.Logger) *HelloHandler {
+	return &HelloHandler{log}
+}
+
+func (h *HelloHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		h.log.Error("Failed to read request", zap.Error(err))
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	if _, err := fmt.Fprintf(w, "Hello, %s\n", body); err != nil {
+		h.log.Error("Failed to write response", zap.Error(err))
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+}
+
+func (*HelloHandler) Pattern() string {
+	return "/hello"
+}
+
+func NewServeMux(route1, route2 Route) *http.ServeMux {
 	mux := http.NewServeMux()
-	mux.Handle(route.Pattern(), route)
+	mux.Handle(route1.Pattern(), route1)
+	mux.Handle(route2.Pattern(), route2)
 	return mux
 }
 
@@ -94,8 +123,15 @@ func main() {
 			NewHttpServer,
 			fx.Annotate(
 				NewEchoHandler,
-				fx.As(new(Route))),
-			NewServeMux,
+				fx.As(new(Route)),
+				fx.ResultTags(`name:"echo"`)),
+			fx.Annotate(
+				NewHelloHandler,
+				fx.As(new(Route)),
+				fx.ResultTags(`name:"hello"`)),
+			fx.Annotate(
+				NewServeMux,
+				fx.ParamTags(`name:"echo"`, `name:"hello"`)),
 			zap.NewExample,
 		),
 		fx.Invoke(func(server *http.Server) {}),

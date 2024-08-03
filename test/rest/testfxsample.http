@@ -1,15 +1,15 @@
-### Basic Echo
+### Echo
 POST http://localhost:8009/echo HTTP/1.1
 content-type: text/plain
 
-hellox
+hello
 
 
-### Basic Echo2
-POST http://localhost:8009/echo HTTP/1.1
+### Hello
+POST http://localhost:8009/hello HTTP/1.1
 content-type: text/plain
 
-helloxxx
+hello, gopher
 
 
 
