@@ -2,17 +2,16 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"github.com/gofiber/fiber/v3"
 	"github.com/golang_fiber_base/internal/app"
 	"github.com/golang_fiber_base/internal/log"
 	"github.com/golang_fiber_base/internal/module/simple"
 	"go.uber.org/fx"
+	"go.uber.org/fx/fxevent"
 	"go.uber.org/zap"
 	"io"
 	"net"
 	"net/http"
-	"os"
 	"time"
 )
 
@@ -40,7 +39,7 @@ func _main() {
 	app_.Logger.Info(err.Error())
 }
 
-func NewHttpServer(lc fx.Lifecycle, mux *http.ServeMux) *http.Server {
+func NewHttpServer(lc fx.Lifecycle, mux *http.ServeMux, log *zap.Logger) *http.Server {
 	srv := &http.Server{Addr: ":8009", Handler: mux}
 	lc.Append(
 		fx.Hook{
@@ -49,7 +48,7 @@ func NewHttpServer(lc fx.Lifecycle, mux *http.ServeMux) *http.Server {
 				if err != nil {
 					return err
 				}
-				fmt.Println("Starting HTTP Server at", srv.Addr)
+				log.Info("Starting HTTP Server at", zap.String("addr", srv.Addr))
 				go srv.Serve(ln)
 				return nil
 			},
@@ -60,15 +59,17 @@ func NewHttpServer(lc fx.Lifecycle, mux *http.ServeMux) *http.Server {
 	return srv
 }
 
-type EchoHandler struct{}
-
-func NewEchoHandler() *EchoHandler {
-	return &EchoHandler{}
+type EchoHandler struct {
+	log *zap.Logger
 }
 
-func (*EchoHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func NewEchoHandler(log *zap.Logger) *EchoHandler {
+	return &EchoHandler{log}
+}
+
+func (h *EchoHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if _, err := io.Copy(w, r.Body); err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to handler request:", err)
+		h.log.Warn("Failed to handler request:", zap.Error(err))
 	}
 }
 
@@ -84,7 +85,11 @@ func main() {
 			NewHttpServer,
 			NewEchoHandler,
 			NewServeMux,
+			zap.NewExample,
 		),
 		fx.Invoke(func(server *http.Server) {}),
+		fx.WithLogger(func(log *zap.Logger) fxevent.Logger {
+			return &fxevent.ZapLogger{Logger: log}
+		}),
 	).Run()
 }
