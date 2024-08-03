@@ -9,8 +9,10 @@ import (
 	"github.com/golang_fiber_base/internal/module/simple"
 	"go.uber.org/fx"
 	"go.uber.org/zap"
+	"io"
 	"net"
 	"net/http"
+	"os"
 	"time"
 )
 
@@ -38,8 +40,8 @@ func _main() {
 	app_.Logger.Info(err.Error())
 }
 
-func NewHttpServer(lc fx.Lifecycle) *http.Server {
-	srv := &http.Server{Addr: ":8009"}
+func NewHttpServer(lc fx.Lifecycle, mux *http.ServeMux) *http.Server {
+	srv := &http.Server{Addr: ":8009", Handler: mux}
 	lc.Append(
 		fx.Hook{
 			OnStart: func(ctx context.Context) error {
@@ -58,9 +60,31 @@ func NewHttpServer(lc fx.Lifecycle) *http.Server {
 	return srv
 }
 
+type EchoHandler struct{}
+
+func NewEchoHandler() *EchoHandler {
+	return &EchoHandler{}
+}
+
+func (*EchoHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if _, err := io.Copy(w, r.Body); err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to handler request:", err)
+	}
+}
+
+func NewServeMux(echo *EchoHandler) *http.ServeMux {
+	mux := http.NewServeMux()
+	mux.Handle("/echo", echo)
+	return mux
+}
+
 func main() {
 	fx.New(
-		fx.Provide(NewHttpServer),
+		fx.Provide(
+			NewHttpServer,
+			NewEchoHandler,
+			NewServeMux,
+		),
 		fx.Invoke(func(server *http.Server) {}),
 	).Run()
 }
