@@ -1,9 +1,8 @@
 package main
 
 import (
-	"github.com/golang_fiber_base/internal/app"
-	"github.com/golang_fiber_base/internal/config"
-	"github.com/golang_fiber_base/internal/log"
+	"github.com/golang_fiber_base/internal/application"
+	"github.com/golang_fiber_base/internal/core"
 	"go.uber.org/fx"
 	"go.uber.org/fx/fxevent"
 	"go.uber.org/zap"
@@ -11,9 +10,8 @@ import (
 
 func main() {
 	fx.New(
-		config.Module(),
-		log.Module(),
-		app.Module(),
+		core.Module(),
+		application.Module(),
 		fx.WithLogger(func(log *zap.Logger) fxevent.Logger {
 			return &fxevent.ZapLogger{Logger: log}
 		}),

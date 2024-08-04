@@ -1,15 +1,13 @@
-package log
+package core
 
 import (
-	"github.com/golang_fiber_base/internal/config"
-	"go.uber.org/fx"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"gopkg.in/natefinch/lumberjack.v2"
 	"os"
 )
 
-func NewEncoder(config config.Config) zapcore.Encoder {
+func NewEncoder(env Env) zapcore.Encoder {
 	encoderConfig := zapcore.EncoderConfig{
 		TimeKey:        "timestamp",
 		LevelKey:       "level",
@@ -23,18 +21,18 @@ func NewEncoder(config config.Config) zapcore.Encoder {
 		EncodeDuration: zapcore.SecondsDurationEncoder, // Duration in seconds
 		EncodeCaller:   zapcore.ShortCallerEncoder,     // Short caller (file and line)
 	}
-	if config.LogEncoder == "console" {
+	if env.LogEncoder == "console" {
 		return zapcore.NewConsoleEncoder(encoderConfig)
 	}
 	return zapcore.NewJSONEncoder(encoderConfig)
 }
 
-func NewWriteSyncer(config config.Config) zapcore.WriteSyncer {
-	if len(config.LogFileName) > 0 {
+func NewWriteSyncer(env Env) zapcore.WriteSyncer {
+	if len(env.LogFileName) > 0 {
 		return zapcore.NewMultiWriteSyncer(
 			zapcore.AddSync(os.Stdout),
 			zapcore.AddSync(&lumberjack.Logger{
-				Filename:   config.LogFileName,
+				Filename:   env.LogFileName,
 				MaxSize:    500, // megabytes
 				MaxBackups: 3,
 				MaxAge:     28, // days
@@ -44,22 +42,11 @@ func NewWriteSyncer(config config.Config) zapcore.WriteSyncer {
 }
 
 func NewLogger(
-	config config.Config,
+	env Env,
 	encoder zapcore.Encoder,
 	writeSyncer zapcore.WriteSyncer,
 ) *zap.Logger {
-	level, _ := zapcore.ParseLevel(config.LogLevel)
+	level, _ := zapcore.ParseLevel(env.LogLevel)
 	core := zapcore.NewCore(encoder, writeSyncer, level)
 	return zap.New(core)
-}
-
-func Module() fx.Option {
-	return fx.Module(
-		"ModuleLog",
-		fx.Provide(
-			NewLogger,
-			NewEncoder,
-			NewWriteSyncer,
-		),
-	)
 }
