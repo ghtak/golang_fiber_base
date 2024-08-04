@@ -6,21 +6,23 @@ import (
 	"go.uber.org/zap"
 )
 
-type HelloController interface {
+type Controller interface {
 	core.Router
 	Hello(ctx fiber.Ctx) error
 	World(ctx fiber.Ctx) error
 }
 
 type helloController struct {
-	app    *fiber.App
-	logger *zap.Logger
+	app     *fiber.App
+	logger  *zap.Logger
+	service Service
 }
 
-func NewHelloController(app *fiber.App, logger *zap.Logger) HelloController {
+func NewHelloController(p core.Param, service Service) Controller {
 	return helloController{
-		app:    app,
-		logger: logger,
+		app:     p.App,
+		logger:  p.Logger,
+		service: service,
 	}
 }
 
@@ -36,11 +38,10 @@ func (h helloController) Group() fiber.Router {
 }
 
 func (h helloController) Hello(ctx fiber.Ctx) error {
-	h.logger.Info("Hello Handler")
-	return ctx.SendString("World")
+	return ctx.SendString(h.service.Hello())
 }
 
 func (h helloController) World(ctx fiber.Ctx) error {
 	h.logger.Info("World Handler")
-	return ctx.SendString("Hello")
+	return ctx.SendString(h.service.World())
 }

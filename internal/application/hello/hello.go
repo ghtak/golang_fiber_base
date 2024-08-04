@@ -8,6 +8,10 @@ import (
 func Module() fx.Option {
 	return fx.Module(
 		"ModuleHello",
-		fx.Provide(core.AsRouter(NewHelloController)),
+		fx.Provide(
+			core.AsRouter(NewHelloController),
+			NewHelloRepository,
+			NewHelloService,
+		),
 	)
 }

@@ -3,6 +3,7 @@ package core
 import (
 	"context"
 	"github.com/gofiber/fiber/v3"
+	"github.com/jmoiron/sqlx"
 	"go.uber.org/fx"
 	"go.uber.org/zap"
 )
@@ -23,10 +24,19 @@ func NewFiber(lc fx.Lifecycle, env Env, log *zap.Logger) *fiber.App {
 	return app
 }
 
+type Param struct {
+	fx.In
+
+	App      *fiber.App
+	Logger   *zap.Logger
+	Env      Env
+	Database *sqlx.DB
+}
+
 func Module() fx.Option {
 	return fx.Module(
 		"ModuleCore",
-		fx.Provide(NewEnv, NewFiber, NewLogger),
+		fx.Provide(NewEnv, NewFiber, NewLogger, NewDatabase),
 		fx.Provide(NewWriteSyncer, NewEncoder, fx.Private),
 		fx.Provide(fx.Annotate(NewRouter, fx.ParamTags(`group:"router"`))),
 		fx.Invoke(func(*fiber.App) {}),
