@@ -10,15 +10,15 @@ type helloService struct {
 }
 
 func NewHelloService(repository Repository) Service {
-	return helloService{
+	return &helloService{
 		repository: repository,
 	}
 }
 
-func (h helloService) Hello() string {
+func (h *helloService) Hello() string {
 	return "World"
 }
 
-func (h helloService) World() string {
+func (h *helloService) World() string {
 	return "Hello"
 }
