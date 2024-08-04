@@ -30,6 +30,7 @@ func (h helloController) Routes() []core.Route {
 	return []core.Route{
 		{Method: fiber.MethodGet, Path: "/", Handler: h.Hello},
 		{Method: fiber.MethodGet, Path: "/world", Handler: h.World},
+		{Method: fiber.MethodGet, Path: "/error", Handler: h.Error},
 	}
 }
 
@@ -43,4 +44,8 @@ func (h helloController) Hello(ctx *fiber.Ctx) error {
 
 func (h helloController) World(ctx *fiber.Ctx) error {
 	return ctx.SendString(h.service.World())
+}
+
+func (h helloController) Error(*fiber.Ctx) error {
+	return h.service.Error()
 }

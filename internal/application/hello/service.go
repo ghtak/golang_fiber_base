@@ -1,8 +1,11 @@
 package hello
 
+import "github.com/gofiber/fiber/v2"
+
 type Service interface {
 	Hello() string
 	World() string
+	Error() error
 }
 
 type helloService struct {
@@ -21,4 +24,11 @@ func (h *helloService) Hello() string {
 
 func (h *helloService) World() string {
 	return "Hello"
+}
+
+func (h *helloService) Error() error {
+	return &fiber.Error{
+		Code:    400,
+		Message: "message",
+	}
 }
